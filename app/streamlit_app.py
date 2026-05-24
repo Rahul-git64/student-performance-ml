@@ -1,5 +1,15 @@
+import os
 import streamlit as st
 import requests
+
+# ======================================================
+# API URL
+# ======================================================
+
+API_URL = os.getenv(
+    "API_URL",
+    "http://flask-api:5000/predict"
+)
 
 # ======================================================
 # PAGE CONFIG
@@ -297,7 +307,7 @@ if st.button("Generate Academic Analysis"):
 
         response = requests.post(
 
-            "http://flask-api:5000/predict",
+            API_URL,
 
             json=payload
 
@@ -368,10 +378,6 @@ if st.button("Generate Academic Analysis"):
         if study_hours < 3:
             concerns.append("Insufficient study duration")
 
-        # ==================================================
-        # PERFORMANCE INSIGHTS
-        # ==================================================
-
         st.markdown(
             '<div class="section-header">📈 Performance Insights</div>',
             unsafe_allow_html=True
@@ -407,10 +413,6 @@ if st.button("Generate Academic Analysis"):
 
             """, unsafe_allow_html=True)
 
-        # ==================================================
-        # RECOMMENDATION
-        # ==================================================
-
         recommendation = ""
 
         if prediction == "Distinction":
@@ -440,10 +442,6 @@ if st.button("Generate Academic Analysis"):
         )
 
         st.info(recommendation)
-
-        # ==================================================
-        # RAW PROBABILITIES
-        # ==================================================
 
         with st.expander("View Detailed Prediction Probabilities"):
 

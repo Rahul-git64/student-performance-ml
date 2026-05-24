@@ -1,0 +1,47 @@
+services:
+
+  # ==================================================
+  # FLASK API SERVICE
+  # ==================================================
+
+  - type: web
+
+    name: student-performance-api
+
+    runtime: docker
+
+    dockerfilePath: ./Dockerfile
+
+    dockerCommand: python app/app.py
+
+    plan: free
+
+    envVars:
+
+      - key: PORT
+        value: 5000
+
+  # ==================================================
+  # STREAMLIT FRONTEND SERVICE
+  # ==================================================
+
+  - type: web
+
+    name: student-performance-frontend
+
+    runtime: docker
+
+    dockerfilePath: ./Dockerfile
+
+    dockerCommand: >
+
+      streamlit run app/streamlit_app.py
+      --server.address=0.0.0.0
+      --server.port=8501
+
+    plan: free
+
+    envVars:
+
+      - key: API_URL
+        value: https://student-performance-api.onrender.com/predict

@@ -1,0 +1,38 @@
+schema: '2.0'
+stages:
+  train:
+    cmd: python src/train.py
+    deps:
+    - path: data/student_dataset.csv
+      hash: md5
+      md5: 049b41602e9e98dad2539d000152c153
+      size: 169805
+    - path: params.yaml
+      hash: md5
+      md5: 9156cec6a758a40fafadf160a48855ff
+      size: 152
+    - path: src/train.py
+      hash: md5
+      md5: 7f19b18cf30899233807ab67eb233452
+      size: 7808
+    outs:
+    - path: models/feature_columns.pkl
+      hash: md5
+      md5: 784fb51cf5bb498762fa0c8b0a18bcaa
+      size: 250
+    - path: models/student_label_encoder.pkl
+      hash: md5
+      md5: c83122e5aca27d17e7f8fcebf8a50d5b
+      size: 559
+    - path: models/student_model.pkl
+      hash: md5
+      md5: 6de9432c06c7b5c58078512b65ab1c68
+      size: 1279
+    - path: models/student_scaler.pkl
+      hash: md5
+      md5: 9d5229e3fdf843990d1fa7287f30c932
+      size: 1591
+    - path: outputs/confusion_matrix.png
+      hash: md5
+      md5: 9564c086c49863a9127c634231d605dc
+      size: 19875
