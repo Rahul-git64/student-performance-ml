@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+
+  flask-api:
+
+    build: .
+
+    container_name: flask-api
+
+    command: python app/app.py
+
+    ports:
+      - "5000:5000"
+
+  streamlit-app:
+
+    build: .
+
+    container_name: streamlit-app
+
+    command: streamlit run app/streamlit_app.py --server.address=0.0.0.0
+
+    ports:
+      - "8501:8501"
+
+    depends_on:
+      - flask-api

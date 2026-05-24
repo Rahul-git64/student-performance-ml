@@ -1,0 +1,17 @@
+stages:
+
+  train:
+
+    cmd: python src/train.py
+
+    deps:
+      - src/train.py
+      - data/student_dataset.csv
+      - params.yaml
+
+    outs:
+      - models/student_model.pkl
+      - models/student_scaler.pkl
+      - models/student_label_encoder.pkl
+      - models/feature_columns.pkl
+      - outputs/confusion_matrix.png

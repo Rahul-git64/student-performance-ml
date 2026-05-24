@@ -1,0 +1,77 @@
+name: CI-CD Pipeline
+
+on:
+
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+jobs:
+
+  build-and-test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # ==========================================
+      # CHECKOUT REPOSITORY
+      # ==========================================
+
+      - name: Checkout Repository
+
+        uses: actions/checkout@v4
+
+      # ==========================================
+      # SETUP PYTHON
+      # ==========================================
+
+      - name: Setup Python
+
+        uses: actions/setup-python@v5
+
+        with:
+          python-version: "3.11"
+
+      # ==========================================
+      # INSTALL DEPENDENCIES
+      # ==========================================
+
+      - name: Install Dependencies
+
+        run: |
+
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # ==========================================
+      # VERIFY TRAINING PIPELINE
+      # ==========================================
+
+      - name: Run Training Pipeline
+
+        run: |
+
+          python src/train.py
+
+      # ==========================================
+      # BUILD DOCKER IMAGE
+      # ==========================================
+
+      - name: Build Docker Image
+
+        run: |
+
+          docker build -t student-performance-ml .
+
+      # ==========================================
+      # SUCCESS MESSAGE
+      # ==========================================
+
+      - name: CI Pipeline Success
+
+        run: echo "CI/CD Pipeline completed successfully!"
