@@ -5,6 +5,8 @@ import warnings
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import mlflow
+import mlflow.sklearn
 
 from sklearn.model_selection import (
     train_test_split,
@@ -56,341 +58,352 @@ os.makedirs(MODEL_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # ======================================================
-# LOAD DATASET
+# MLFLOW SETUP
 # ======================================================
 
-print("\nLoading dataset...")
-
-df = pd.read_csv(DATASET_PATH)
-
-print("✓ Dataset loaded successfully")
-
-print(f"Dataset shape: {df.shape}")
-
-# ======================================================
-# DISPLAY CLASS DISTRIBUTION
-# ======================================================
-
-print("\nGrade Distribution:\n")
-
-print(df["grade"].value_counts())
-
-# ======================================================
-# FEATURES + TARGET
-# ======================================================
-
-X = df.drop("grade", axis=1)
-
-y = df["grade"]
-
-# ======================================================
-# HANDLE CATEGORICAL FEATURES
-# ======================================================
-
-print("\nEncoding categorical features...")
-
-feature_encoders = {}
-
-categorical_columns = X.select_dtypes(
-    include=["object"]
-).columns
-
-for column in categorical_columns:
-
-    encoder = LabelEncoder()
-
-    X[column] = encoder.fit_transform(X[column])
-
-    feature_encoders[column] = encoder
-
-print("✓ Categorical encoding completed")
-
-# ======================================================
-# TARGET ENCODING
-# ======================================================
-
-label_encoder = LabelEncoder()
-
-y_encoded = label_encoder.fit_transform(y)
-
-# ======================================================
-# TRAIN TEST SPLIT
-# ======================================================
-
-print("\nPreprocessing data...")
-
-X_train, X_test, y_train, y_test = train_test_split(
-
-    X,
-    y_encoded,
-    test_size=TEST_SIZE,
-    random_state=RANDOM_STATE,
-    stratify=y_encoded
-
-)
-
-print("\n✓ Train/Test split completed")
-
-print(f"Train size: {X_train.shape}")
-
-print(f"Test size : {X_test.shape}")
-
-# ======================================================
-# FEATURE SCALING
-# ======================================================
-
-print("\nScaling features...")
-
-scaler = StandardScaler()
-
-X_train_scaled = scaler.fit_transform(X_train)
-
-X_test_scaled = scaler.transform(X_test)
-
-# ======================================================
-# MODEL TRAINING
-# ======================================================
-
-print("\nTraining Logistic Regression model...")
-
-model = LogisticRegression(
-
-    max_iter=MAX_ITER,
-    random_state=RANDOM_STATE
-
-)
-
-model.fit(X_train_scaled, y_train)
-
-print("✓ Model training completed")
-
-# ======================================================
-# PREDICTIONS
-# ======================================================
-
-y_pred = model.predict(X_test_scaled)
-
-y_prob = model.predict_proba(X_test_scaled)
-
-# ======================================================
-# EVALUATION
-# ======================================================
-
-accuracy = accuracy_score(y_test, y_pred)
-
-auc = roc_auc_score(
-
-    y_test,
-    y_prob,
-    multi_class="ovr"
-
-)
-
-cv_scores = cross_val_score(
-
-    model,
-    scaler.transform(X),
-    y_encoded,
-    cv=5
-
+mlflow.set_experiment(
+    "Student Performance Prediction"
 )
 
 # ======================================================
-# RESULTS
+# START MLFLOW RUN
 # ======================================================
 
-print("\nEvaluating model...")
+with mlflow.start_run():
 
-print("\n" + "─" * 55)
+    # ==================================================
+    # LOG PARAMETERS
+    # ==================================================
 
-print("LOGISTIC REGRESSION RESULTS")
+    mlflow.log_param(
+        "test_size",
+        TEST_SIZE
+    )
 
-print("─" * 55)
+    mlflow.log_param(
+        "random_state",
+        RANDOM_STATE
+    )
 
-print(f"\nAccuracy : {accuracy:.4f}")
+    mlflow.log_param(
+        "max_iter",
+        MAX_ITER
+    )
 
-print(f"AUC Score: {auc:.4f}")
+    # ==================================================
+    # LOAD DATASET
+    # ==================================================
 
-print(f"CV Score : {cv_scores.mean():.4f}")
+    print("\nLoading dataset...")
 
-print("\nClassification Report:\n")
+    df = pd.read_csv(DATASET_PATH)
 
-print(
+    print("✓ Dataset loaded successfully")
 
-    classification_report(
+    print(f"Dataset shape: {df.shape}")
 
-        y_test,
-        y_pred,
-        target_names=label_encoder.classes_
+    # ==================================================
+    # CLASS DISTRIBUTION
+    # ==================================================
+
+    print("\nGrade Distribution:\n")
+
+    print(df["grade"].value_counts())
+
+    # ==================================================
+    # FEATURES + TARGET
+    # ==================================================
+
+    X = df.drop("grade", axis=1)
+
+    y = df["grade"]
+
+    # ==================================================
+    # HANDLE CATEGORICAL FEATURES
+    # ==================================================
+
+    print("\nEncoding categorical features...")
+
+    feature_encoders = {}
+
+    categorical_columns = X.select_dtypes(
+        include=["object"]
+    ).columns
+
+    for column in categorical_columns:
+
+        encoder = LabelEncoder()
+
+        X[column] = encoder.fit_transform(X[column])
+
+        feature_encoders[column] = encoder
+
+    print("✓ Categorical encoding completed")
+
+    # ==================================================
+    # TARGET ENCODING
+    # ==================================================
+
+    label_encoder = LabelEncoder()
+
+    y_encoded = label_encoder.fit_transform(y)
+
+    # ==================================================
+    # TRAIN TEST SPLIT
+    # ==================================================
+
+    print("\nPreprocessing data...")
+
+    X_train, X_test, y_train, y_test = train_test_split(
+
+        X,
+        y_encoded,
+        test_size=TEST_SIZE,
+        random_state=RANDOM_STATE,
+        stratify=y_encoded
 
     )
 
-)
+    print("\n✓ Train/Test split completed")
 
-# ======================================================
-# SAVE ARTIFACTS
-# ======================================================
+    print(f"Train size: {X_train.shape}")
 
-print("\nSaving model artifacts...")
+    print(f"Test size : {X_test.shape}")
 
-joblib.dump(
+    # ==================================================
+    # FEATURE SCALING
+    # ==================================================
 
-    model,
-    f"{MODEL_DIR}/student_model.pkl"
+    print("\nScaling features...")
 
-)
+    scaler = StandardScaler()
 
-joblib.dump(
+    X_train_scaled = scaler.fit_transform(X_train)
 
-    scaler,
-    f"{MODEL_DIR}/student_scaler.pkl"
+    X_test_scaled = scaler.transform(X_test)
 
-)
+    # ==================================================
+    # MODEL TRAINING
+    # ==================================================
 
-joblib.dump(
+    print("\nTraining Logistic Regression model...")
 
-    label_encoder,
-    f"{MODEL_DIR}/student_label_encoder.pkl"
+    model = LogisticRegression(
 
-)
+        max_iter=MAX_ITER,
+        random_state=RANDOM_STATE
 
-joblib.dump(
+    )
 
-    list(X.columns),
-    f"{MODEL_DIR}/feature_columns.pkl"
+    model.fit(X_train_scaled, y_train)
 
-)
+    print("✓ Model training completed")
 
-joblib.dump(
+    # ==================================================
+    # PREDICTIONS
+    # ==================================================
 
-    feature_encoders,
-    f"{MODEL_DIR}/feature_encoders.pkl"
+    y_pred = model.predict(X_test_scaled)
 
-)
+    y_prob = model.predict_proba(X_test_scaled)
 
-print("✓ Model artifacts saved")
+    # ==================================================
+    # METRICS
+    # ======================================================
 
-# ======================================================
-# CONFUSION MATRIX
-# ======================================================
+    accuracy = accuracy_score(y_test, y_pred)
 
-print("\nGenerating confusion matrix...")
+    auc = roc_auc_score(
 
-cm = confusion_matrix(y_test, y_pred)
+        y_test,
+        y_prob,
+        multi_class="ovr"
 
-plt.figure(figsize=(6, 5))
+    )
 
-plt.imshow(cm, interpolation="nearest")
+    cv_scores = cross_val_score(
 
-plt.title("Confusion Matrix")
+        model,
+        scaler.transform(X),
+        y_encoded,
+        cv=5
 
-plt.colorbar()
+    )
 
-tick_marks = np.arange(len(label_encoder.classes_))
+    # ==================================================
+    # LOG METRICS
+    # ======================================================
 
-plt.xticks(
+    mlflow.log_metric(
+        "accuracy",
+        accuracy
+    )
 
-    tick_marks,
-    label_encoder.classes_,
-    rotation=45
+    mlflow.log_metric(
+        "auc_score",
+        auc
+    )
 
-)
+    mlflow.log_metric(
+        "cv_score",
+        cv_scores.mean()
+    )
 
-plt.yticks(
+    # ======================================================
+    # RESULTS
+    # ======================================================
 
-    tick_marks,
-    label_encoder.classes_
+    print("\nEvaluating model...")
 
-)
+    print("\n" + "─" * 55)
 
-plt.xlabel("Predicted")
+    print("LOGISTIC REGRESSION RESULTS")
 
-plt.ylabel("Actual")
+    print("─" * 55)
 
-for i in range(cm.shape[0]):
+    print(f"\nAccuracy : {accuracy:.4f}")
 
-    for j in range(cm.shape[1]):
+    print(f"AUC Score: {auc:.4f}")
 
-        plt.text(
+    print(f"CV Score : {cv_scores.mean():.4f}")
 
-            j,
-            i,
-            cm[i, j],
-            ha="center",
-            va="center"
+    print("\nClassification Report:\n")
+
+    print(
+
+        classification_report(
+
+            y_test,
+            y_pred,
+            target_names=label_encoder.classes_
 
         )
 
-plt.tight_layout()
+    )
 
-plt.savefig(
+    # ======================================================
+    # SAVE ARTIFACTS
+    # ======================================================
 
-    f"{OUTPUT_DIR}/confusion_matrix.png"
+    print("\nSaving model artifacts...")
 
-)
+    joblib.dump(
 
-print("✓ Confusion matrix saved")
+        model,
+        f"{MODEL_DIR}/student_model.pkl"
 
-# ======================================================
-# SAMPLE PREDICTIONS
-# ======================================================
+    )
 
-print("\n── SAMPLE PREDICTIONS ──")
+    joblib.dump(
 
-sample_1 = X.iloc[[0]]
+        scaler,
+        f"{MODEL_DIR}/student_scaler.pkl"
 
-sample_2 = X.iloc[[1]]
+    )
 
-samples = [sample_1, sample_2]
+    joblib.dump(
 
-for idx, sample in enumerate(samples, start=1):
+        label_encoder,
+        f"{MODEL_DIR}/student_label_encoder.pkl"
 
-    sample_scaled = scaler.transform(sample)
+    )
 
-    pred = model.predict(sample_scaled)
+    joblib.dump(
 
-    probs = model.predict_proba(sample_scaled)[0]
+        list(X.columns),
+        f"{MODEL_DIR}/feature_columns.pkl"
 
-    prediction = label_encoder.inverse_transform(pred)[0]
+    )
 
-    print(f"\nStudent {idx}")
+    joblib.dump(
 
-    print(f"Prediction: {prediction}")
+        feature_encoders,
+        f"{MODEL_DIR}/feature_encoders.pkl"
 
-    prob_text = " | ".join([
+    )
 
-        f"{label_encoder.classes_[i]}: {p*100:.1f}%"
+    print("✓ Model artifacts saved")
 
-        for i, p in enumerate(probs)
+    # ======================================================
+    # CONFUSION MATRIX
+    # ======================================================
 
-    ])
+    print("\nGenerating confusion matrix...")
 
-    print(f"Probabilities: {prob_text}")
+    cm = confusion_matrix(y_test, y_pred)
 
-# ======================================================
-# FINAL STATUS
-# ======================================================
+    plt.figure(figsize=(6, 5))
 
-print("\n✓ Pipeline completed successfully")
+    plt.imshow(cm, interpolation="nearest")
 
-print(f"\nModels saved in : {MODEL_DIR}")
+    plt.title("Confusion Matrix")
 
-print(f"Outputs saved in: {OUTPUT_DIR}")
+    plt.colorbar()
 
-print("\nGenerated files:")
+    tick_marks = np.arange(len(label_encoder.classes_))
 
-print("\nMODELS/")
+    plt.xticks(
 
-print("- student_model.pkl")
+        tick_marks,
+        label_encoder.classes_,
+        rotation=45
 
-print("- student_scaler.pkl")
+    )
 
-print("- student_label_encoder.pkl")
+    plt.yticks(
 
-print("- feature_columns.pkl")
+        tick_marks,
+        label_encoder.classes_
 
-print("- feature_encoders.pkl")
+    )
 
-print("\nOUTPUTS/")
+    plt.xlabel("Predicted")
 
-print("- confusion_matrix.png")
+    plt.ylabel("Actual")
+
+    for i in range(cm.shape[0]):
+
+        for j in range(cm.shape[1]):
+
+            plt.text(
+
+                j,
+                i,
+                cm[i, j],
+                ha="center",
+                va="center"
+
+            )
+
+    plt.tight_layout()
+
+    confusion_path = (
+        f"{OUTPUT_DIR}/confusion_matrix.png"
+    )
+
+    plt.savefig(confusion_path)
+
+    print("✓ Confusion matrix saved")
+
+    # ======================================================
+    # LOG ARTIFACTS TO MLFLOW
+    # ======================================================
+
+    mlflow.log_artifact(confusion_path)
+
+    mlflow.sklearn.log_model(
+
+        model,
+        "student-performance-model"
+
+    )
+
+    # ======================================================
+    # FINAL STATUS
+    # ======================================================
+
+    print("\n✓ Pipeline completed successfully")
+
+    print(f"\nModels saved in : {MODEL_DIR}")
+
+    print(f"Outputs saved in: {OUTPUT_DIR}")

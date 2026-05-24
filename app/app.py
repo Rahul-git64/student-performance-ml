@@ -1,29 +1,26 @@
-import sys
-import os
-
-# ======================================================
-# FIX PYTHON MODULE PATH
-# ======================================================
-
-sys.path.append(
-    os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..")
-    )
-)
-
-# ======================================================
-# IMPORTS
-# ======================================================
-
 from flask import Flask, request, jsonify
+
+from datetime import datetime
+
+import json
+import os
+import time
 
 from src.predict import predict_student_performance
 
 # ======================================================
-# CREATE FLASK APP
+# APP SETUP
 # ======================================================
 
 app = Flask(__name__)
+
+# ======================================================
+# LOG DIRECTORY
+# ======================================================
+
+os.makedirs("logs", exist_ok=True)
+
+LOG_FILE = "logs/prediction_logs.jsonl"
 
 # ======================================================
 # HOME ROUTE
@@ -35,7 +32,25 @@ def home():
 
     return jsonify({
 
-        "message": "Student Performance Prediction API Running"
+        "message": "Student Performance Prediction API Running",
+
+        "status": "healthy"
+
+    })
+
+# ======================================================
+# HEALTH CHECK
+# ======================================================
+
+@app.route("/health")
+
+def health():
+
+    return jsonify({
+
+        "status": "healthy",
+
+        "timestamp": str(datetime.utcnow())
 
     })
 
@@ -47,16 +62,72 @@ def home():
 
 def predict():
 
+    start_time = time.time()
+
     try:
 
-        # Get JSON input
+        # ==============================================
+        # GET INPUT DATA
+        # ==============================================
+
         data = request.get_json()
 
-        # Run prediction
+        # ==============================================
+        # RUN PREDICTION
+        # ==============================================
+
         result = predict_student_performance(data)
 
-        # Return prediction response
-        return jsonify(result)
+        # ==============================================
+        # LATENCY
+        # ==============================================
+
+        latency = round(
+
+            time.time() - start_time,
+            4
+
+        )
+
+        # ==============================================
+        # LOG ENTRY
+        # ==============================================
+
+        log_entry = {
+
+            "timestamp": str(datetime.utcnow()),
+
+            "input": data,
+
+            "prediction": result["prediction"],
+
+            "probabilities": result["probabilities"],
+
+            "latency_seconds": latency
+
+        }
+
+        with open(LOG_FILE, "a") as log_file:
+
+            log_file.write(
+
+                json.dumps(log_entry) + "\n"
+
+            )
+
+        # ==============================================
+        # RESPONSE
+        # ==============================================
+
+        return jsonify({
+
+            "prediction": result["prediction"],
+
+            "probabilities": result["probabilities"],
+
+            "latency_seconds": latency
+
+        })
 
     except Exception as e:
 
@@ -67,7 +138,7 @@ def predict():
         }), 400
 
 # ======================================================
-# RUN FLASK SERVER
+# RUN APP
 # ======================================================
 
 if __name__ == "__main__":
@@ -75,7 +146,9 @@ if __name__ == "__main__":
     app.run(
 
         host="0.0.0.0",
+
         port=5000,
+
         debug=True
 
     )
