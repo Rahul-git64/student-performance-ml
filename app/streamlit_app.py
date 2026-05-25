@@ -139,6 +139,11 @@ with col1:
         "3.0"
     ))
 
+    quiz_avg = int(st.text_input(
+        "Quiz Average",
+        "75"
+    ))
+
 with col2:
 
     assignments_done = int(st.text_input(
@@ -146,14 +151,14 @@ with col2:
         "80"
     ))
 
-    quiz_avg = int(st.text_input(
-        "Quiz Average",
-        "75"
-    ))
-
     midterm_score = int(st.text_input(
         "Midterm Score",
         "78"
+    ))
+
+    final_score = int(st.text_input(
+        "Final Exam Score",
+        "82"
     ))
 
 # ======================================================
@@ -301,7 +306,8 @@ if st.button("Generate Academic Analysis"):
             "school_type": school_type,
             "distance_km": distance_km,
             "quiz_avg": quiz_avg,
-            "midterm_score": midterm_score
+            "midterm_score": midterm_score,
+            "final_score": final_score
 
         }
 
@@ -315,143 +321,46 @@ if st.button("Generate Academic Analysis"):
 
         result = response.json()
 
-        prediction = result["prediction"]
+        if "error" in result:
 
-        probabilities = result["probabilities"]
-
-        confidence = round(
-            max(probabilities.values()) * 100,
-            2
-        )
-
-        # ==================================================
-        # MAIN RESULT
-        # ==================================================
-
-        st.markdown(f"""
-
-        <div class="metric-card">
-
-            <div class="metric-title">
-                Expected Academic Performance
-            </div>
-
-            <div class="metric-value">
-                {prediction}
-            </div>
-
-        </div>
-
-        """, unsafe_allow_html=True)
-
-        st.success(f"Confidence Score: {confidence}%")
-
-        # ==================================================
-        # INSIGHTS
-        # ==================================================
-
-        strengths = []
-
-        concerns = []
-
-        if attendance_pct >= 85:
-            strengths.append("Excellent attendance consistency")
-
-        if study_hours >= 7:
-            strengths.append("Strong study discipline")
-
-        if assignments_done >= 85:
-            strengths.append("High assignment completion rate")
-
-        if prev_gpa >= 3.5:
-            strengths.append("Strong historical academic performance")
-
-        if sleep_hours < 5:
-            concerns.append("Low sleep duration may affect focus")
-
-        if internet_hours >= 6:
-            concerns.append("High internet usage detected")
-
-        if attendance_pct < 60:
-            concerns.append("Low attendance may impact outcomes")
-
-        if study_hours < 3:
-            concerns.append("Insufficient study duration")
-
-        st.markdown(
-            '<div class="section-header">📈 Performance Insights</div>',
-            unsafe_allow_html=True
-        )
-
-        if strengths:
-
-            st.markdown("""
-
-            <div class="insight-box">
-            <b>Strengths</b><br><br>
-
-            """ + "<br>".join(
-                [f"✅ {s}" for s in strengths]
-            ) + """
-
-            </div>
-
-            """, unsafe_allow_html=True)
-
-        if concerns:
-
-            st.markdown("""
-
-            <div class="insight-box">
-            <b>Risk Factors</b><br><br>
-
-            """ + "<br>".join(
-                [f"⚠️ {c}" for c in concerns]
-            ) + """
-
-            </div>
-
-            """, unsafe_allow_html=True)
-
-        recommendation = ""
-
-        if prediction == "Distinction":
-
-            recommendation = (
-                "Maintain current consistency and continue balancing "
-                "academic discipline with healthy routines."
-            )
-
-        elif prediction == "Pass":
-
-            recommendation = (
-                "Improving study consistency and attendance could "
-                "significantly improve performance."
-            )
+            st.error(result["error"])
 
         else:
 
-            recommendation = (
-                "Immediate focus on attendance, study habits, and "
-                "structured academic support is recommended."
+            prediction = result["prediction"]
+
+            probabilities = result["probabilities"]
+
+            confidence = round(
+                max(probabilities.values()) * 100,
+                2
             )
 
-        st.markdown(
-            '<div class="section-header">🧠 Recommendation</div>',
-            unsafe_allow_html=True
-        )
+            st.markdown(f"""
 
-        st.info(recommendation)
+            <div class="metric-card">
 
-        with st.expander("View Detailed Prediction Probabilities"):
+                <div class="metric-title">
+                    Expected Academic Performance
+                </div>
 
-            st.json(probabilities)
+                <div class="metric-value">
+                    {prediction}
+                </div>
 
-    except ValueError:
+            </div>
 
-        st.error(
-            "Please enter valid numeric values in all input fields."
-        )
+            """, unsafe_allow_html=True)
+
+            st.success(
+                f"Confidence Score: {confidence}%"
+            )
+
+            with st.expander(
+                "View Detailed Prediction Probabilities"
+            ):
+
+                st.json(probabilities)
 
     except Exception as e:
 

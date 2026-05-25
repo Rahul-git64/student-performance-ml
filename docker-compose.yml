@@ -1,6 +1,8 @@
-version: "3.9"
-
 services:
+
+  # ==================================================
+  # FLASK API
+  # ==================================================
 
   flask-api:
 
@@ -11,7 +13,16 @@ services:
     command: python app/app.py
 
     ports:
+
       - "5000:5000"
+
+    volumes:
+
+      - .:/project
+
+  # ==================================================
+  # STREAMLIT FRONTEND
+  # ==================================================
 
   streamlit-app:
 
@@ -19,10 +30,56 @@ services:
 
     container_name: streamlit-app
 
-    command: streamlit run app/streamlit_app.py --server.address=0.0.0.0
+    command: >
+
+      streamlit run app/streamlit_app.py
+      --server.address=0.0.0.0
+      --server.port=8501
 
     ports:
+
       - "8501:8501"
 
     depends_on:
+
       - flask-api
+
+    volumes:
+
+      - .:/project
+
+  # ==================================================
+  # PROMETHEUS
+  # ==================================================
+
+  prometheus:
+
+    image: prom/prometheus
+
+    container_name: prometheus
+
+    ports:
+      - "9090:9090"
+
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+    depends_on:
+      - flask-api
+  # ==================================================
+  # GRAFANA
+  # ==================================================
+
+  grafana:
+
+    image: grafana/grafana
+
+    container_name: grafana
+
+    ports:
+
+      - "3000:3000"
+
+    depends_on:
+
+      - prometheus

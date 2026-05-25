@@ -6,6 +6,15 @@ import json
 import os
 import time
 
+from prometheus_client import (
+
+    Counter,
+    Histogram,
+    generate_latest,
+    CONTENT_TYPE_LATEST
+
+)
+
 from src.predict import predict_student_performance
 
 # ======================================================
@@ -21,6 +30,31 @@ app = Flask(__name__)
 os.makedirs("logs", exist_ok=True)
 
 LOG_FILE = "logs/prediction_logs.jsonl"
+
+# ======================================================
+# PROMETHEUS METRICS
+# ======================================================
+
+REQUEST_COUNT = Counter(
+
+    "prediction_requests_total",
+    "Total prediction requests"
+
+)
+
+PREDICTION_ERRORS = Counter(
+
+    "prediction_errors_total",
+    "Total prediction failures"
+
+)
+
+PREDICTION_LATENCY = Histogram(
+
+    "prediction_latency_seconds",
+    "Prediction latency"
+
+)
 
 # ======================================================
 # HOME ROUTE
@@ -55,12 +89,28 @@ def health():
     })
 
 # ======================================================
+# PROMETHEUS METRICS ROUTE
+# ======================================================
+
+@app.route("/metrics")
+
+def metrics():
+
+    return generate_latest(), 200, {
+
+        "Content-Type": CONTENT_TYPE_LATEST
+
+    }
+
+# ======================================================
 # PREDICTION ROUTE
 # ======================================================
 
 @app.route("/predict", methods=["POST"])
 
 def predict():
+
+    REQUEST_COUNT.inc()
 
     start_time = time.time()
 
@@ -88,6 +138,8 @@ def predict():
             4
 
         )
+
+        PREDICTION_LATENCY.observe(latency)
 
         # ==============================================
         # LOG ENTRY
@@ -130,6 +182,8 @@ def predict():
         })
 
     except Exception as e:
+
+        PREDICTION_ERRORS.inc()
 
         return jsonify({
 

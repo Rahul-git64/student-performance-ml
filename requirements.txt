@@ -9,3 +9,4 @@ requests
 dvc[s3]
 mlflow
 pyyaml
+prometheus_client
